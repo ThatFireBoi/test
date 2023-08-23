@@ -45,6 +45,5 @@ char **get_paths(void)
 	paths = realloc(paths, sizeof(char *) * (num_paths + 1));
 	paths[num_paths] = NULL;
 
-	free(paths);
 	return (paths);
 }

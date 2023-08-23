@@ -41,11 +41,38 @@ void execute(char *command, char **env) {
     }
 
     if (child_pid == 0) { /* Child process */
+		if (tokens[0][0] == '/') {
         /* Execute the command using execve */
         if (execve(tokens[0], tokens, env) == -1) {
             perror("execve error");
             exit(EXIT_FAILURE); /* Exit child process with failure status */
         }
+	} else {
+		/* Search for the command in the directories listed in PATH */
+		char **paths = get_paths();
+		int i;
+		for (i = 0; paths[i] != NULL; i++) {
+			char *full_path = (char *)malloc(strlen(paths[i]) + strlen(tokens[0]) + 2);
+			if (full_path == NULL) {
+				perror("malloc");
+				free(paths);
+				exit(EXIT_FAILURE);
+			}
+			sprintf(full_path, "%s/%s", paths[i], tokens[0]);
+			if (access(full_path, X_OK) == 0) {
+				if (execve(full_path, tokens, env) == -1) {
+					perror("execve error");
+					exit(EXIT_FAILURE);
+				}
+				free(full_path);
+				return;
+			}
+			free(full_path);
+		}
+		fprintf(stderr, "Command not found\n");
+		free(paths);
+		exit(EXIT_FAILURE);
+	}
     } else { /* Parent process */
         /* Wait for the child process to complete */
         waitpid(child_pid, NULL, 0);
